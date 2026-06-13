@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#38bdf8">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="喝水提醒">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <title>喝水提醒 · Helium</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #38bdf8;
+            --primary-dark: #0ea5e9;
+            --bg: #f0f9ff;
+            --text: #1e3a5f;
+            --text-muted: #6b8cae;
+            --glass: rgba(255, 255, 255, 0.55);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+            background: var(--bg);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 柔和背景 */
+        .bg {
+            position: fixed;
+            inset: -30%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.25), transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(125, 211, 252, 0.25), transparent 40%),
+                radial-gradient(circle at 60% 80%, rgba(14, 165, 233, 0.18), transparent 40%);
+            filter: blur(60px);
+            animation: float 15s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(3%, 4%) scale(1.08); }
+        }
+
+        .widget {
+            position: relative;
+            z-index: 2;
+            width: 340px;
+            padding: 28px;
+            border-radius: 32px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42));
+            backdrop-filter: blur(24px) saturate(160%);
+            -webkit-backdrop-filter: blur(24px) saturate(160%);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow:
+                0 30px 80px rgba(14, 165, 233, 0.15),
+                0 10px 30px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            transform-origin: center center;
+            transition: transform 0.2s ease-out;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .greeting {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            margin-top: 2px;
+        }
+
+        .settings-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255,255,255,0.6);
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.15s;
+            color: var(--text);
+            font-size: 22px;
+            line-height: 1;
+        }
+
+        .settings-btn:hover { transform: rotate(30deg) scale(1.08); }
+
+        /* 水杯 */
+        .cup-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0 22px;
+            position: relative;
+        }
+
+        .cup {
+            width: 160px;
+            height: 200px;
+            border-radius: 0 0 24px 24px;
+            background: rgba(255, 255, 255, 0.35);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            box-shadow:
+                0 10px 30px rgba(14, 165, 233, 0.15),
+                inset 0 0 0 1px rgba(255,255,255,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .water {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 60%, #0ea5e9 100%);
+            transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+            overflow: hidden;
+        }
+
+        /* 顶部圆润水面 */
+        .water::before {
+            content: "";
+            position: absolute;
+            top: -10px;
+            left: -15%;
+            width: 130%;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(125, 211, 252, 0.85);
+            animation: waterTop 4s ease-in-out infinite;
+            transform-origin: center;
+        }
+
+        @keyframes waterTop {
+            0%, 100% { transform: scaleY(1) scaleX(1) translateY(0); }
+            50% { transform: scaleY(0.85) scaleX(1.04) translateY(-2px); }
+        }
+
+        /* 光泽扫过 */
+        .water::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            transform: skewX(-18deg);
+            animation: shine 4s ease-in-out infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; opacity: 0; }
+            20% { opacity: 1; }
+            60% { left: 140%; opacity: 1; }
+            100% { left: 140%; opacity: 0; }
+        }
+
+        /* 气泡粒子 */
+        .bubble-particle {
+            position: absolute;
+            bottom: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.2));
+            box-shadow: 0 0 4px rgba(255,255,255,0.4);
+            animation: rise var(--duration) ease-in forwards;
+            pointer-events: none;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(0) scale(0.6);
+                opacity: 0;
+            }
+            10% { opacity: 0.85; }
+            80% { opacity: 0.6; }
+            100% {
+                transform: translateY(var(--travel)) scale(1.1);
+                opacity: 0;
+            }
+        }
+
+        .percentage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--text);
+            text-shadow: 0 2px 10px rgba(255,255,255,0.8);
+            z-index: 5;
+        }
+
+        .amount {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .amount-num {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--primary-dark);
+        }
+
+        .amount-goal {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            height: 10px;
+            border-radius: 6px;
+            background: rgba(0,0,0,0.05);
+            overflow: hidden;
+            margin-bottom: 22px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #7dd3fc, #0ea5e9);
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+        }
+
+        /* 快捷按钮 */
+        .quick-btns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .qbtn {
+            padding: 12px 0;
+            border-radius: 16px;
+            border: none;
+            background: rgba(255, 255, 255, 0.6);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.15s;
+            backdrop-filter: blur(8px);
+        }
+
+        .qbtn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.85); box-shadow: 0 4px 14px rgba(14, 165, 233, 0.2); }
+        .qbtn:active { transform: translateY(0) scale(0.97); }
+
+        .custom-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .custom-input {
+            flex: 1;
+            height: 44px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.6);
+            background: rgba(255,255,255,0.45);
+            padding: 0 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            outline: none;
+        }
+
+        .add-btn {
+            height: 44px;
+            padding: 0 18px;
+            border-radius: 14px;
+            border: none;
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+            transition: all 0.15s;
+        }
+
+        .add-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(14, 165, 233, 0.45); }
+        .add-btn:active { transform: translateY(0) scale(0.97); }
+
+        .undo-row {
+            text-align: center;
+        }
+
+        .undo-btn {
+            font-size: 12px;
+            color: var(--text-muted);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 10px;
+            transition: all 0.15s;
+        }
+
+        .undo-btn:hover { background: rgba(255,255,255,0.5); color: var(--text); }
+
+        /* 设置面板 */
+        .settings-panel {
+            position: absolute;
+            inset: 0;
+            border-radius: 32px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(30px);
+            padding: 24px;
+            transform: translateY(110%);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-panel.open { transform: translateY(0); }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .settings-header h3 {
+            font-size: 18px;
+            color: var(--text);
+        }
+
+        .close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0,0,0,0.05);
+            cursor: pointer;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+        }
+
+        .setting-item label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .setting-item input[type="number"] {
+            width: 100%;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.08);
+            background: rgba(255,255,255,0.6);
+            padding: 0 14px;
+            font-size: 14px;
+            color: var(--text);
+            outline: none;
+        }
+
+        .reminder-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .toggle {
+            width: 52px;
+            height: 30px;
+            border-radius: 15px;
+            background: #cbd5e1;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.on { background: var(--primary); }
+
+        .toggle::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+        }
+
+        .toggle.on::after { transform: translateX(22px); }
+
+        .save-settings {
+            margin-top: auto;
+            padding: 14px 0;
+            border-radius: 16px;
+            border: none;
+            background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);
+        }
+
+        /* 提醒浮层 */
+        .reminder-popup {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 260px;
+            padding: 18px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255,255,255,0.7);
+            box-shadow: 0 20px 50px rgba(14, 165, 233, 0.2);
+            transform: translateX(320px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 50;
+        }
+
+        .reminder-popup.show { transform: translateX(0); }
+
+        .reminder-popup h4 {
+            font-size: 15px;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .reminder-popup p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .reminder-popup button {
+            width: 100%;
+            padding: 10px 0;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            padding: 12px 22px;
+            border-radius: 30px;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.6);
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 60;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* 庆祝动画 */
+        .confetti {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: pop 0.8s ease-out forwards;
+        }
+
+        @keyframes pop {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg"></div>
+
+    <div class="widget">
+        <div class="header">
+            <div>
+                <div class="greeting" id="greeting">早上好</div>
+                <div class="title">记得喝水 💧</div>
+            </div>
+            <button class="settings-btn" id="settingsBtn">⚙</button>
+        </div>
+
+        <div class="cup-wrap">
+            <div class="cup">
+                <div class="water" id="water">
+                    <div class="bubbles" id="bubbles"></div>
+                </div>
+                <div class="percentage" id="percentage">0%</div>
+            </div>
+        </div>
+
+        <div class="amount">
+            <span class="amount-num" id="currentAmount">0</span>
+            <span class="amount-goal"> / <span id="goalAmount">2000</span> ml</span>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="quick-btns">
+            <button class="qbtn" data-ml="100">+100ml</button>
+            <button class="qbtn" data-ml="250">+250ml</button>
+            <button class="qbtn" data-ml="500">+500ml</button>
+        </div>
+
+        <div class="custom-row">
+            <input type="number" class="custom-input" id="customInput" placeholder="自定义 ml" min="1">
+            <button class="add-btn" id="customAdd">添加</button>
+        </div>
+
+        <div class="undo-row">
+            <button class="undo-btn" id="undoBtn">↩ 撤销上一次</button>
+        </div>
+
+        <!-- 设置面板 -->
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-header">
+                <h3>设置</h3>
+                <button class="close-btn" id="closeSettings">✕</button>
+            </div>
+
+            <div class="setting-item">
+                <label>每日目标 (ml)</label>
+                <input type="number" id="goalInput" value="2000" min="500" max="5000" step="100">
+            </div>
+
+            <div class="setting-item">
+                <label>提醒间隔 (分钟)</label>
+                <input type="number" id="intervalInput" value="60" min="15" max="240" step="15">
+            </div>
+
+            <div class="setting-item reminder-toggle">
+                <label>开启提醒</label>
+                <div class="toggle on" id="reminderToggle"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 提醒弹窗 -->
+    <div class="reminder-popup" id="reminderPopup">
+        <h4>该喝水啦！💧</h4>
+        <p>休息一下，补充一点水分吧</p>
+        <button id="drinkNow">我已喝水</button>
+    </div>
+
+    <div class="toast" id="toast">已记录 250ml</div>
+
+    <script>
+        // 状态
+        const state = {
+            current: 0,
+            goal: 2000,
+            reminderOn: true,
+            interval: 60,
+            lastReminder: null,
+            history: []
+        };
+
+        // DOM
+        const water = document.getElementById('water');
+        const percentage = document.getElementById('percentage');
+        const currentAmount = document.getElementById('currentAmount');
+        const goalAmount = document.getElementById('goalAmount');
+        const progressFill = document.getElementById('progressFill');
+        const greeting = document.getElementById('greeting');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const closeSettings = document.getElementById('closeSettings');
+        const goalInput = document.getElementById('goalInput');
+        const intervalInput = document.getElementById('intervalInput');
+        const reminderToggle = document.getElementById('reminderToggle');
+        const reminderPopup = document.getElementById('reminderPopup');
+        const drinkNow = document.getElementById('drinkNow');
+        const undoBtn = document.getElementById('undoBtn');
+        const toast = document.getElementById('toast');
+
+        // 问候语
+        function setGreeting() {
+            const hour = new Date().getHours();
+            let text = '你好';
+            if (hour < 6) text = '夜深了';
+            else if (hour < 11) text = '早上好';
+            else if (hour < 14) text = '中午好';
+            else if (hour < 18) text = '下午好';
+            else text = '晚上好';
+            greeting.textContent = text;
+        }
+
+        // 本地存储
+        function save() {
+            localStorage.setItem('water-widget', JSON.stringify({
+                current: state.current,
+                goal: state.goal,
+                reminderOn: state.reminderOn,
+                interval: state.interval,
+                history: state.history,
+                date: new Date().toDateString()
+            }));
+        }
+
+        function load() {
+            const raw = localStorage.getItem('water-widget');
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            // 每日重置
+            if (data.date !== new Date().toDateString()) {
+                state.current = 0;
+                state.history = [];
+            } else {
+                state.current = data.current || 0;
+                state.goal = data.goal || 2000;
+                state.reminderOn = data.reminderOn !== false;
+                state.interval = data.interval || 60;
+                state.history = data.history || [];
+            }
+        }
+
+        // 更新 UI
+        function update() {
+            const pct = Math.min(100, Math.round((state.current / state.goal) * 100));
+            water.style.height = pct + '%';
+            percentage.textContent = pct + '%';
+            currentAmount.textContent = state.current;
+            goalAmount.textContent = state.goal;
+            progressFill.style.width = pct + '%';
+
+            // 完成目标庆祝
+            if (state.current >= state.goal && state.current - state.history[state.history.length - 1]?.amount < state.goal) {
+                celebrate();
+            }
+
+            save();
+        }
+
+        // 添加饮水
+        function addWater(ml) {
+            ml = parseInt(ml);
+            if (!ml || ml <= 0) return;
+            state.history.push({ amount: ml, time: Date.now() });
+            state.current += ml;
+            update();
+            showToast(`已记录 ${ml}ml`);
+            createConfetti();
+        }
+
+        // 撤销
+        function undo() {
+            if (state.history.length === 0) return;
+            const last = state.history.pop();
+            state.current = Math.max(0, state.current - last.amount);
+            update();
+            showToast(`已撤销 ${last.amount}ml`);
+        }
+
+        // 快捷按钮
+        document.querySelectorAll('.qbtn').forEach(btn => {
+            btn.addEventListener('click', () => addWater(btn.dataset.ml));
+        });
+
+        // 自定义添加
+        document.getElementById('customAdd').addEventListener('click', () => {
+            const input = document.getElementById('customInput');
+            addWater(input.value);
+            input.value = '';
+        });
+
+        undoBtn.addEventListener('click', undo);
+
+        // 设置面板
+        function applySettings() {
+            state.goal = parseInt(goalInput.value) || 2000;
+            state.interval = parseInt(intervalInput.value) || 60;
+            state.reminderOn = reminderToggle.classList.contains('on');
+            update();
+        }
+
+        settingsBtn.addEventListener('click', () => {
+            goalInput.value = state.goal;
+            intervalInput.value = state.interval;
+            reminderToggle.classList.toggle('on', state.reminderOn);
+            settingsPanel.classList.add('open');
+        });
+
+        closeSettings.addEventListener('click', () => {
+            applySettings();
+            settingsPanel.classList.remove('open');
+        });
+
+        reminderToggle.addEventListener('click', () => {
+            reminderToggle.classList.toggle('on');
+            applySettings();
+        });
+
+        goalInput.addEventListener('input', applySettings);
+        intervalInput.addEventListener('input', applySettings);
+
+        // 提醒逻辑（Helium 兼容版：仅显示弹窗，不发系统通知和声音）
+        function showReminder() {
+            if (!state.reminderOn) return;
+            reminderPopup.classList.add('show');
+        }
+
+        drinkNow.addEventListener('click', () => {
+            reminderPopup.classList.remove('show');
+            addWater(250);
+        });
+
+        // 定时检查
+        setInterval(() => {
+            if (!state.reminderOn) return;
+            const now = Date.now();
+            const last = state.lastReminder || now;
+            if (now - last >= state.interval * 60 * 1000) {
+                state.lastReminder = now;
+                showReminder();
+                save();
+            }
+        }, 10000);
+
+        // Toast
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // 彩带动画
+        function createConfetti() {
+            const colors = ['#38bdf8', '#7dd3fc', '#0ea5e9', '#bae6fd', '#fff'];
+            for (let i = 0; i < 12; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti';
+                c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                c.style.left = '50%';
+                c.style.top = '40%';
+                c.style.setProperty('--tx', (Math.random() - 0.5) * 200 + 'px');
+                c.style.setProperty('--ty', (Math.random() - 1) * 200 + 'px');
+                document.querySelector('.widget').appendChild(c);
+                setTimeout(() => c.remove(), 800);
+            }
+        }
+
+        // 水杯气泡动画
+        const bubbles = document.getElementById('bubbles');
+        function createWaterBubble() {
+            const pct = parseFloat(water.style.height) || 0;
+            if (pct < 5) return; // 水位太低不冒泡
+
+            const b = document.createElement('div');
+            b.className = 'bubble-particle';
+            const size = Math.random() * 6 + 3;
+            b.style.width = size + 'px';
+            b.style.height = size + 'px';
+            b.style.left = (Math.random() * 80 + 10) + '%';
+            b.style.setProperty('--duration', (Math.random() * 1.5 + 2) + 's');
+            b.style.setProperty('--travel', -(Math.random() * 40 + 30) + 'px');
+            bubbles.appendChild(b);
+            setTimeout(() => b.remove(), 3800);
+        }
+
+        setInterval(createWaterBubble, 700);
+
+        function celebrate() {
+            createConfetti();
+            showToast('🎉 今日目标达成！');
+        }
+
+        // 根据窗口大小自适应缩放组件
+        function fitWidget() {
+            const widget = document.querySelector('.widget');
+            const baseWidth = 340;
+            const baseHeight = widget.scrollHeight || 560;
+            const padding = 16;
+            const availableW = window.innerWidth - padding * 2;
+            const availableH = window.innerHeight - padding * 2;
+            const scale = Math.min(availableW / baseWidth, availableH / baseHeight);
+            widget.style.transform = `scale(${Math.max(0.5, scale)})`;
+        }
+
+        // 初始化
+        setGreeting();
+        load();
+        update();
+        fitWidget();
+
+        window.addEventListener('resize', fitWidget);
+
+
+    </script>
+</body>
+</html>

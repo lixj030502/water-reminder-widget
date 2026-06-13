@@ -1,4 +1,4 @@
-const CACHE_NAME = 'water-reminder-v2';
+const CACHE_NAME = 'water-reminder-v3';
 const ASSETS = [
   '/',
   '/index.html',

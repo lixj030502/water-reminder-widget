@@ -46,6 +46,29 @@ python3 -m http.server 8082
 1. Safari 打开页面
 2. 点击分享按钮 → 添加到主屏幕
 
+### 作为桌面悬浮小组件（推荐）
+
+使用 **Helium** 可以把网页变成始终置顶的悬浮窗口，放在桌面角落当小组件用。
+
+#### 下载 Helium
+
+- 官网：https://slashlos.github.io/Helium/
+- GitHub Releases：https://github.com/slashlos/Helium/releases
+
+下载 `.zip` 或 `.dmg`，解压后拖到「应用程序」文件夹。
+
+#### 使用步骤
+
+1. 打开 Helium
+2. 按 `Cmd + L` 或点击地址栏
+3. 输入你的 GitHub Pages 链接：
+   ```
+   https://你的用户名.github.io/water-reminder-widget/
+   ```
+4. 调整窗口大小到约 **340×560**
+5. 拖到屏幕角落
+6. 点击置顶按钮（图钉图标），让它始终显示在最上层
+
 ## 📁 项目结构
 
 ```
@@ -54,6 +77,7 @@ water-reminder-widget/
 ├── manifest.json       # PWA 配置
 ├── sw.js               # Service Worker（离线支持）
 ├── icon.svg            # 应用图标
+├── deploy.sh           # 一键部署脚本
 ├── LICENSE             # MIT 许可证
 └── README.md           # 项目说明
 ```
@@ -66,6 +90,33 @@ water-reminder-widget/
 - Service Worker
 - LocalStorage
 - Web Notifications API
+
+## 🚀 自动部署
+
+项目包含 `deploy.sh` 一键部署脚本，会自动：
+
+1. 递增 `sw.js` 的缓存版本号（解决 PWA 缓存问题）
+2. `git add .`
+3. `git commit`
+4. `git push origin main`
+
+### 使用方法
+
+```bash
+./deploy.sh "你的改动说明"
+```
+
+例如：
+
+```bash
+./deploy.sh "优化水面动画效果"
+```
+
+如果没有写提交信息，会使用默认信息 `Update widget`：
+
+```bash
+./deploy.sh
+```
 
 ## 📄 开源协议
 

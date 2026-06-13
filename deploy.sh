@@ -30,6 +30,9 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
+# 使用 HTTP/1.1 避免部分网络环境下的 HTTP2 framing 错误
+git config http.version HTTP/1.1
+
 # 自动递增 Service Worker 缓存版本号
 echo -e "${YELLOW}📦 更新 Service Worker 缓存版本...${NC}"
 

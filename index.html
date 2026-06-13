@@ -88,8 +88,8 @@
         }
 
         .settings-btn {
-            width: 36px;
-            height: 36px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             border: none;
             background: rgba(255,255,255,0.6);
@@ -101,6 +101,8 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             transition: transform 0.15s;
             color: var(--text);
+            font-size: 22px;
+            line-height: 1;
         }
 
         .settings-btn:hover { transform: rotate(30deg) scale(1.08); }
@@ -578,7 +580,6 @@
                 <div class="toggle on" id="reminderToggle"></div>
             </div>
 
-            <button class="save-settings" id="saveSettings">保存设置</button>
         </div>
     </div>
 
@@ -615,7 +616,6 @@
         const goalInput = document.getElementById('goalInput');
         const intervalInput = document.getElementById('intervalInput');
         const reminderToggle = document.getElementById('reminderToggle');
-        const saveSettings = document.getElementById('saveSettings');
         const reminderPopup = document.getElementById('reminderPopup');
         const drinkNow = document.getElementById('drinkNow');
         const undoBtn = document.getElementById('undoBtn');
@@ -714,6 +714,14 @@
         undoBtn.addEventListener('click', undo);
 
         // 设置面板
+        function applySettings() {
+            state.goal = parseInt(goalInput.value) || 2000;
+            state.interval = parseInt(intervalInput.value) || 60;
+            state.reminderOn = reminderToggle.classList.contains('on');
+            update();
+            requestNotification();
+        }
+
         settingsBtn.addEventListener('click', () => {
             goalInput.value = state.goal;
             intervalInput.value = state.interval;
@@ -721,21 +729,18 @@
             settingsPanel.classList.add('open');
         });
 
-        closeSettings.addEventListener('click', () => settingsPanel.classList.remove('open'));
+        closeSettings.addEventListener('click', () => {
+            applySettings();
+            settingsPanel.classList.remove('open');
+        });
 
         reminderToggle.addEventListener('click', () => {
             reminderToggle.classList.toggle('on');
+            applySettings();
         });
 
-        saveSettings.addEventListener('click', () => {
-            state.goal = parseInt(goalInput.value) || 2000;
-            state.interval = parseInt(intervalInput.value) || 60;
-            state.reminderOn = reminderToggle.classList.contains('on');
-            update();
-            settingsPanel.classList.remove('open');
-            showToast('设置已保存');
-            requestNotification();
-        });
+        goalInput.addEventListener('input', applySettings);
+        intervalInput.addEventListener('input', applySettings);
 
         // 提醒逻辑
         function requestNotification() {

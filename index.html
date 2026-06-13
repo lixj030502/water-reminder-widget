@@ -65,6 +65,8 @@
                 0 30px 80px rgba(14, 165, 233, 0.15),
                 0 10px 30px rgba(0, 0, 0, 0.06),
                 inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            transform-origin: center center;
+            transition: transform 0.2s ease-out;
         }
 
         .header {
@@ -842,11 +844,26 @@
             showToast('🎉 今日目标达成！');
         }
 
+        // 根据窗口大小自适应缩放组件
+        function fitWidget() {
+            const widget = document.querySelector('.widget');
+            const baseWidth = 340;
+            const baseHeight = widget.scrollHeight || 560;
+            const padding = 16;
+            const availableW = window.innerWidth - padding * 2;
+            const availableH = window.innerHeight - padding * 2;
+            const scale = Math.min(availableW / baseWidth, availableH / baseHeight);
+            widget.style.transform = `scale(${Math.max(0.5, scale)})`;
+        }
+
         // 初始化
         setGreeting();
         load();
         update();
         requestNotification();
+        fitWidget();
+
+        window.addEventListener('resize', fitWidget);
 
         // 注册 Service Worker
         if ('serviceWorker' in navigator) {

@@ -135,35 +135,63 @@
             background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 60%, #0ea5e9 100%);
             transition: height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+            overflow: hidden;
         }
 
+        /* 顶部圆润水面 */
         .water::before {
             content: "";
             position: absolute;
-            top: -10px;
-            left: -50%;
-            width: 200%;
-            height: 24px;
-            border-radius: 45%;
-            background: rgba(125, 211, 252, 0.9);
-            animation: wave 4s linear infinite;
+            top: -8px;
+            left: -10%;
+            width: 120%;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(125, 211, 252, 0.85);
         }
 
+        /* 光泽扫过 */
         .water::after {
             content: "";
             position: absolute;
-            top: -8px;
-            left: -50%;
-            width: 200%;
-            height: 22px;
-            border-radius: 42%;
-            background: rgba(255, 255, 255, 0.25);
-            animation: wave 6s linear infinite reverse;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            transform: skewX(-18deg);
+            animation: shine 4s ease-in-out infinite;
         }
 
-        @keyframes wave {
-            0% { transform: translateX(0) rotate(0deg); }
-            100% { transform: translateX(-25%) rotate(360deg); }
+        @keyframes shine {
+            0% { left: -100%; opacity: 0; }
+            20% { opacity: 1; }
+            60% { left: 140%; opacity: 1; }
+            100% { left: 140%; opacity: 0; }
+        }
+
+        /* 气泡粒子 */
+        .bubble-particle {
+            position: absolute;
+            bottom: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(255,255,255,0.2));
+            box-shadow: 0 0 4px rgba(255,255,255,0.4);
+            animation: rise var(--duration) ease-in forwards;
+            pointer-events: none;
+        }
+
+        @keyframes rise {
+            0% {
+                transform: translateY(0) scale(0.6);
+                opacity: 0;
+            }
+            10% { opacity: 0.85; }
+            80% { opacity: 0.6; }
+            100% {
+                transform: translateY(var(--travel)) scale(1.1);
+                opacity: 0;
+            }
         }
 
         .percentage {
@@ -497,7 +525,9 @@
 
         <div class="cup-wrap">
             <div class="cup">
-                <div class="water" id="water"></div>
+                <div class="water" id="water">
+                    <div class="bubbles" id="bubbles"></div>
+                </div>
                 <div class="percentage" id="percentage">0%</div>
             </div>
         </div>
@@ -774,6 +804,26 @@
                 setTimeout(() => c.remove(), 800);
             }
         }
+
+        // 水杯气泡动画
+        const bubbles = document.getElementById('bubbles');
+        function createWaterBubble() {
+            const pct = parseFloat(water.style.height) || 0;
+            if (pct < 5) return; // 水位太低不冒泡
+
+            const b = document.createElement('div');
+            b.className = 'bubble-particle';
+            const size = Math.random() * 6 + 3;
+            b.style.width = size + 'px';
+            b.style.height = size + 'px';
+            b.style.left = (Math.random() * 80 + 10) + '%';
+            b.style.setProperty('--duration', (Math.random() * 1.5 + 2) + 's');
+            b.style.setProperty('--travel', -(Math.random() * 40 + 30) + 'px');
+            bubbles.appendChild(b);
+            setTimeout(() => b.remove(), 3800);
+        }
+
+        setInterval(createWaterBubble, 700);
 
         function celebrate() {
             createConfetti();
